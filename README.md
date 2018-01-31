@@ -8,12 +8,12 @@ This is the first and only *individual* (as opposed to *team*) this semester.
 
 Term: Spring 2018
 
-+ Projec title: Lorem ipsum dolor sit amet
-+ This project is conducted by [your name]
++ Projec title: Is the Dow Jones Average affected by the sentiment scores of the presidents' inaugurations?
++ This project is conducted by [Xinlei Cao]
 
-+ Project summary: [a short summary] Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
++ Project summary: Since the inauguration speech of president always reflect his plan for next 100 days or 4 years. A positive speech could raise the citizens' confidence for the next days, therefore, it could affect the financial market in some extent. Based on this intuition, I guess that maybe we can find the relation between change of the Dow Jones Average in that month when the president made the speech and the sentiment scores of the presidents' inaugurations.
 
-Following [suggestions](http://nicercode.github.io/blog/2013-04-05-projects/) by [RICH FITZJOHN](http://nicercode.github.io/about/#Team) (@richfitz). This folder is orgarnized as follows.
+This folder is orgarnized as follows.
 
 ```
 proj/
