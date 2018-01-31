@@ -1,4 +1,5 @@
 # Project: 
 ### Figs folder
 
-The figs directory contains the figures. This directory only contains generated files; that is, one should always be able to delete the contents and regenerate them.
+The figs directory contains the figures.
+Rplot1 and Rplot2 contain the visualization of the models we generated in this project.
