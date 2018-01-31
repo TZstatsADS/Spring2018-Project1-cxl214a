@@ -1,0 +1,135 @@
+---
+title: "Is the Dow Jones Average affected by the sentiment scores of the presidents\' inaugurations?"
+author: "Xinlei Cao"
+date: "January 31, 2018"
+output: html_document
+---
+
+# Is the Dow Jones Average affected by the sentiment scores of the presidents' inaugurations?
+#### Since the inauguration speech of president always reflect his plan for next 100 days or 4 years. A positive speech could raise the citizens' confidence for the next days, therefore, it could affect the financial market in some extent. Based on this intuition, I guess that maybe we can find the relation between change of the Dow Jones Average in that month when the president made the speech and the sentiment scores of the presidents' inaugurations.
+
+
+# Step 0: check and install needed packages. Load the libraries and functions. 
+```{r warning=FALSE, message=FALSE}
+packages.used=c('tm', 'ggplot2', 'tidytext', 'magrittr', 'dplyr', 'NLP')
+
+# check packages that need to be installed.
+packages.needed=setdiff(packages.used, 
+                        intersect(installed.packages()[,1], 
+                                  packages.used))
+# install additional packages
+if(length(packages.needed)>0){
+  install.packages(packages.needed, dependencies = TRUE)
+}
+
+# load packages
+library('tidytext')
+library('NLP')
+library("tm")
+library('ggplot2')
+library('magrittr')
+library('dplyr')
+```
+
+# Step 1: Import the information of the presidents' inauguration and the full text, and merge them in one dataframe. Meanwhile, preprocess the text of the inaugurations.
+First, we import the data of information of presidents' inauguration, then we import the full text of each inauguration.
+Then we remove the punctuations and meaningless characters, seperate the whole speech text into single words, and delete the stopwords.
+```{r warning=FALSE}
+# Improt the data of the information of the inaugurations
+Info = read.csv('../data/Inauglist.csv')
+names(Info)[names(Info)=='ï..President']='President'
+Info$Fulltext = rep(NaN, nrow(Info))
+
+# This function is used to create the filename of the corresponding full text of the inaugurations.
+speechname = function(x){
+  a = paste('inaug', x[2], '-', x[3], '.txt', sep = '')
+  return(a)
+}
+
+speechfile = apply(Info, MARGIN = 1, FUN = speechname)  
+Info$speechfile = speechfile
+
+# Import the stopwords of English
+StopWords = stopwords('en')
+'%nin%' <- Negate('%in%')
+
+# This function is used to import the full text of each row of the data of the inaugurations' information.
+# Meanwhile, we split the full text into words and remove the stopwords and punctuations in the full text.
+readspeech = function(x){
+  a = x[9]
+  Line = readLines(paste('..\\data\\InauguralSpeeches\\', a, sep = ''))
+  Line = paste(Line, collapse = ' ')
+  Line = tolower(Line)
+  Line.words = strsplit(Line, split = '(\\s|[[:punct:]])+')[[1]]  # split the words and remove the punctuations.
+  Line.words = unlist(Line.words)
+  Line.words = Line.words[Line.words %nin% StopWords]  # remove the stopwords
+  return(Line.words)
+}
+
+Info$Fulltext = apply(Info, MARGIN = 1, readspeech)
+```
+
+# Step 2: Import the data of the Dow Jones Average in 100 years and merge it and the inauguration dataframe.
+We download the data of the Dow Jones Average in 100 years on the website http://www.macrotrends.net/1319/dow-jones-100-year-historical-chart, calculate the percentage change of dow jones average in the months corresponding to the inauguration speeches.
+After that we combine this information with the dataframe of inauguration information.
+```{r warning=FALSE}
+dowjones = read.csv('../data/Dowjones.csv', header = TRUE)
+df = merge(Info, dowjones, by.x = c('President', 'Term'), by.y = c('President', 'Term'))
+```
+
+# Step 3: Analyze the sentiments of the inaugurations, and compute the scores of each inaugurations.
+For each speech text, we use the package 'tidytext' to compute the sentiment score.
+We use the sum of scores of each word as the creterion to evaluate the level of sentiments of each speech.
+The score of positive sentiment is positive; the score of negative sentiment is negative.
+```{r warning=FALSE, message=FALSE}
+# define a function to compute the scores of sentiments.
+sentiments_score = function(x){
+  score_df = data.frame(x)
+  colnames(score_df) = 'word'
+  afinn = score_df %>% 
+    inner_join(get_sentiments("afinn")) %>% 
+    summarise(sentiment = sum(score))
+  score = as.numeric(afinn[1,1])
+  return(score)
+}
+
+score = lapply(df$Fulltext, sentiments_score)
+
+df$sentiments_score = unlist(score)
+```
+
+# Step 4: Analyze the relation between the sentiments and the Dow Jones Average corresponding to that month.
+Regress the data of the Dow Jones Average and sentiment scores, then draw a plot to visualize the result.
+From the perspective of data, It seems that sentiments of speech don't affect the Dow Jones Average. There is the reason may cause this result: The effect of speech of new president could be ignored in front of the trend of economy.
+Also, we find that there is a outlier in this plot, we can find that the economy grows so fast in that month. This is the economic recovery period after the Great Depression when Franklin D. Roosevelt become the president.
+Besides, it is obvious that which party the president belongs to does not influent our result.
+```{r warning=FALSE}
+reg1 = lm(df[-(which(df$rate==max(df$rate))), ]$rate~df[-(which(df$rate==max(df$rate))), ]$sentiments_score)
+
+ggplot(df)+
+  geom_point(mapping = aes(x = sentiments_score, y = rate, color = Party))+
+  geom_abline(intercept = 1.06595901, slope = -0.01277268)+
+  annotate('text', x = 59+17, y = 40.18083, label = 'outlier')+
+  xlab('Sentiment Score')+
+  ylab('Dow Jones Average Change')+
+  ggtitle('Relation between sendiments and the Dow Jones Average')
+
+```
+
+# Step 5: Use the average scores of words instead of the sum of scores of words to analyze this problem.
+We know that length of each speech is different and long speeches have a larger probability to get a high score of sentiment. In addition, the result above shows no relation between the sum of scores of words and the  percentage change of Dow Jones Average. So, we want to use the average scores of words instead of the sum of scores to analyze this problem agian, and expect to find some other results.
+Average Score = Sum of scores / numbers of words
+It also shows that sentiments of speech don't affect the Dow Jones Average.
+```{r warning=FALSE}
+df$average_score = df$sentiments_score/df$Words
+df.new = df[-(which(df$rate==max(df$rate))), ]
+reg2 = lm(df.new$rate~df.new$average_score)
+
+ggplot(df)+
+  geom_point(mapping = aes(x = average_score, y = rate, color = Party))+
+  geom_abline(intercept = 2.135107, slope = -42.250857)+
+  annotate('text', x = 0.037, y = 40.18083, label = 'outlier')+
+  xlab('Average Sentiment Score')+
+  ylab('Dow Jones Average Change')+
+  ggtitle('Relation between sendiments and the Dow Jones Average')
+```
